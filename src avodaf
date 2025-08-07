@@ -1,0 +1,125 @@
+import React, { useEffect, useState } from "react";
+
+const vocabulary = [
+  { german: "Haus", italian: "Casa", audio: "/audio/haus.mp3", category: "Oggetti", phrase: "Das ist mein Haus." },
+  { german: "Baum", italian: "Albero", audio: "/audio/baum.mp3", category: "Natura", phrase: "Der Baum ist sehr hoch." },
+  { german: "Buch", italian: "Libro", audio: "/audio/buch.mp3", category: "Oggetti", phrase: "Ich lese ein Buch." },
+  { german: "Tisch", italian: "Tavolo", audio: "/audio/tisch.mp3", category: "Casa", phrase: "Der Tisch ist rund." },
+  { german: "Stuhl", italian: "Sedia", audio: "/audio/stuhl.mp3", category: "Casa", phrase: "Ich sitze auf dem Stuhl." },
+];
+
+export default function App() {
+  const [index, setIndex] = useState(0);
+  const [userAnswer, setUserAnswer] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [score, setScore] = useState(0);
+  const [completed, setCompleted] = useState(false);
+  const [progress, setProgress] = useState(() => {
+    const stored = localStorage.getItem("germanAppProgress");
+    return stored ? JSON.parse(stored) : {};
+  });
+  const [mode, setMode] = useState(() => localStorage.getItem("germanAppMode") || "input");
+  const currentWord = vocabulary[index];
+
+  const generateOptions = () => {
+    const options = [currentWord.italian];
+    while (options.length < 4) {
+      const random = vocabulary[Math.floor(Math.random() * vocabulary.length)].italian;
+      if (!options.includes(random)) options.push(random);
+    }
+    return options.sort(() => Math.random() - 0.5);
+  };
+  const [options, setOptions] = useState(generateOptions());
+
+  const checkAnswer = (answer) => {
+    const correct = answer.trim().toLowerCase() === currentWord.italian.toLowerCase();
+    if (correct) {
+      setFeedback("Corretto!");
+      setScore(prev => prev + 1);
+      const updatedProgress = {
+        ...progress,
+        [currentWord.german]: (progress[currentWord.german] || 0) + 1,
+      };
+      setProgress(updatedProgress);
+      localStorage.setItem("germanAppProgress", JSON.stringify(updatedProgress));
+    } else {
+      setFeedback(`Sbagliato. La risposta giusta è: ${currentWord.italian}`);
+    }
+  };
+
+  const nextWord = () => {
+    if (index + 1 >= vocabulary.length) {
+      setCompleted(true);
+    } else {
+      setIndex(index + 1);
+      setOptions(generateOptions());
+    }
+    setFeedback("");
+    setUserAnswer("");
+  };
+
+  const restart = () => {
+    setIndex(0);
+    setScore(0);
+    setUserAnswer("");
+    setFeedback("");
+    setCompleted(false);
+    setOptions(generateOptions());
+  };
+
+  const switchMode = (newMode) => {
+    setMode(newMode);
+    localStorage.setItem("germanAppMode", newMode);
+    restart();
+  };
+
+  const playAudio = () => {
+    const audio = new Audio(currentWord.audio);
+    audio.play();
+  };
+
+  return (
+    <div style={{ maxWidth: 500, margin: "auto", padding: 20, fontFamily: "sans-serif" }}>
+      <h1>🧠 Impara il Tedesco</h1>
+      <div>
+        <button onClick={() => switchMode("input")} disabled={mode === "input"}>Modalità Input</button>
+        <button onClick={() => switchMode("quiz")} disabled={mode === "quiz"}>Modalità Quiz</button>
+      </div>
+      {!completed ? (
+        <>
+          <h2>Traduci: <strong>{currentWord.german}</strong></h2>
+          <p>Frase d'esempio: <em>{currentWord.phrase}</em></p>
+          <p>Categoria: {currentWord.category}</p>
+          <button onClick={playAudio}>🔊 Ascolta</button>
+          {mode === "input" ? (
+            <>
+              <input
+                type="text"
+                value={userAnswer}
+                onChange={(e) => setUserAnswer(e.target.value)}
+                placeholder="Risposta in italiano"
+              />
+              <button onClick={() => checkAnswer(userAnswer)}>Verifica</button>
+            </>
+          ) : (
+            <div>
+              {options.map((opt, i) => (
+                <button key={i} onClick={() => checkAnswer(opt)}>{opt}</button>
+              ))}
+            </div>
+          )}
+          <p>{feedback}</p>
+          <button onClick={nextWord}>👉 Parola successiva</button>
+          <p>Ripetizioni corrette per {currentWord.german}: {progress[currentWord.german] || 0}</p>
+        </>
+      ) : (
+        <>
+          <h2>✅ Sessione completata!</h2>
+          <p>Punteggio: {score} su {vocabulary.length}</p>
+          <button onClick={restart}>Ricomincia</button>
+        </>
+      )}
+    </div>
+  );
+}
+
