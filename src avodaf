@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState ,useEffect} from "react";
 
 const vocabulary = [
   { german: "Haus", italian: "Casa", audio: "/audio/haus.mp3", category: "Oggetti", phrase: "Das ist mein Haus." },
